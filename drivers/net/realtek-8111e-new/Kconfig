@@ -1,0 +1,12 @@
+#config RTL8111E
+#    bool  "RTL8111E support"
+#     help
+#      Say yes here to support the RTL8111E device
+
+
+config RTL8111E
+    tristate "Realtek 8111E-8168 gigabit ethernet support"
+    depends on PCI
+    select FW_LOADER
+    select CRC32
+    select MII
