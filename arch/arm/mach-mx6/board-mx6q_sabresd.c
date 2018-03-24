@@ -215,6 +215,11 @@
 
 #define CONFIG_SND_SOC_SGTL5000  1
 
+/*add ben lvds*/
+#define CABC_EN0				IMX_GPIO_NR(4, 15)
+#define LCD_PWR_12V_EN			IMX_GPIO_NR(5, 7)
+#define	LCD_PWR_3V3_EN			IMX_GPIO_NR(5, 5)
+
 static struct clk *sata_clk;
 static struct clk *clko;
 static int mma8x5x_position;
@@ -462,9 +467,9 @@ static int mxc_sgtl5000_init(void)
 
 	/* enable wm8958 4.2v power supply */
 	gpio_request(SABRESD_CODEC_PWR_EN, "aud_4v2");
-	gpio_direction_output(SABRESD_CODEC_PWR_EN, 0);
+	gpio_direction_output(SABRESD_CODEC_PWR_EN, 1);
 	msleep(1);
-	gpio_set_value(SABRESD_CODEC_PWR_EN, 0);
+	gpio_set_value(SABRESD_CODEC_PWR_EN, 1);
 
 	clko = clk_get(NULL, "clko_clk");
 	if (IS_ERR(clko)) {
@@ -2129,15 +2134,25 @@ int lvds_power_en(struct platform_device *pdev)
 {
 	msleep(4000);
 
-	gpio_request(SABRESD_CABC_EN1, "cabc-en1");
-	gpio_direction_output(SABRESD_CABC_EN1, 0);
+	gpio_request(LCD_PWR_12V_EN, "LCD_PWR_12V_EN");
+	gpio_direction_output(LCD_PWR_12V_EN, 1);
 	msleep(300);
 
-	gpio_request(SABRESD_CABC_EN0, "cabc-en0");
-        gpio_direction_output(SABRESD_CABC_EN0, 0);
+	gpio_request(LCD_PWR_3V3_EN, "LCD_PWR_3V3_EN");
+    gpio_direction_output(LCD_PWR_3V3_EN, 1);
+
+    gpio_request(CABC_EN0, "CABC_EN0");
+    gpio_direction_output(CABC_EN0, 1);
 
 	gpio_request(MCU_P01, "MCU_P01");
 	gpio_direction_output(MCU_P01, 1);
+
+	//usb-hub
+    printk("hub reset \n");
+    gpio_request(SABRESD_HUB_RESET, "hub-rst");
+    //gpio_direction_output(SABRESD_HUB_RESET, 0);
+    //udelay(10);
+    gpio_direction_output(SABRESD_HUB_RESET, 1);
 
 	return 0;
 }
@@ -2289,7 +2304,7 @@ static void __init mx6_sabresd_board_init(void)
 			OBSRV_MUX1_MASK);
 	else
 		fec_data.gpio_irq = -1;
-	//imx6_init_fec(fec_data);
+	imx6_init_fec(fec_data);
 
 	//imx6q_add_pm_imx(0, &mx6q_sabresd_pm_data);
 
@@ -2453,11 +2468,12 @@ static void __init mx6_sabresd_board_init(void)
 	imx6q_add_perfmon(0);
 	imx6q_add_perfmon(1);
 	imx6q_add_perfmon(2);
-	gpio_request(SABRESD_HUB_RESET, "hub-rst");
-	gpio_direction_output(SABRESD_HUB_RESET, 0);
-	mdelay(1000);
-	printk("hub reset \n");
-	gpio_direction_output(SABRESD_HUB_RESET, 1);
+
+	//printk("hub reset \n");
+	//gpio_request(SABRESD_HUB_RESET, "hub-rst");
+	//gpio_direction_output(SABRESD_HUB_RESET, 0);
+	//mdelay(1);
+	//gpio_direction_output(SABRESD_HUB_RESET, 1);
 }
 
 extern void __iomem *twd_base;
