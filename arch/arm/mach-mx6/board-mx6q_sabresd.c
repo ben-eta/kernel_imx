@@ -93,7 +93,7 @@
 #define SABRESD_VOLUME_DN	IMX_GPIO_NR(1, 5)
 #define SABRESD_MICROPHONE_DET	IMX_GPIO_NR(1, 9)
 //#define SABRESD_CSI0_PWN	IMX_GPIO_NR(1, 16)
-//#define SABRESD_CSI0_RST	IMX_GPIO_NR(1, 17)
+#define SABRESD_WIFI_EN		IMX_GPIO_NR(1, 17)
 #define SABRESD_ACCL_INT	IMX_GPIO_NR(1, 18)
 //#define SABRESD_MIPICSI_PWN	IMX_GPIO_NR(1, 19)
 //#define SABRESD_MIPICSI_RST	IMX_GPIO_NR(1, 20)
@@ -108,7 +108,7 @@
 #define SABRESD_SD3_WP                IMX_GPIO_NR(7, 1)
 
 #define SABRESD_SD2_CD		IMX_GPIO_NR(2, 2)
-#define SABRESD_SD2_WP		IMX_GPIO_NR(2, 3)
+#define SABRESD_SD2_WP		IMX_GPIO_NR(5, 20)
 #define SABRESD_CHARGE_DOK_B	IMX_GPIO_NR(2, 24)
 #define SABRESD_GPS_RESET	IMX_GPIO_NR(2, 28)
 #define SABRESD_SENSOR_EN	IMX_GPIO_NR(2, 31)
@@ -122,7 +122,7 @@
 #define SABRESD_eCOMPASS_INT	IMX_GPIO_NR(3, 16)
 #define SABRESD_GPS_PPS		IMX_GPIO_NR(3, 18)
 #define SABRESD_PCIE_PWR_EN	IMX_GPIO_NR(6, 11)
-#define SABRESD_USB_OTG_PWR	IMX_GPIO_NR(3, 22)
+#define SABRESD_AMP_EN		IMX_GPIO_NR(3, 22)
 #define SABRESD_USB_H1_PWR	IMX_GPIO_NR(1, 29)
 #define SABRESD_CHARGE_CHG_1_B	IMX_GPIO_NR(3, 23)
 #define SABRESD_TS_INT		IMX_GPIO_NR(3, 26)
@@ -150,6 +150,7 @@
 #define SABRESD_DI1_D0_CS	IMX_GPIO_NR(6, 31)
 
 #define SABRESD_HEADPHONE_DET	IMX_GPIO_NR(7, 8)
+#define SABRESD_HUB_RESET       IMX_GPIO_NR(1, 20)
 #define SABRESD_PCIE_RST_B_REVB	IMX_GPIO_NR(1, 5)
 //#define SABRESD_PMIC_INT_B	IMX_GPIO_NR(7, 13)
 //#define SABRESD_PFUZE_INT	IMX_GPIO_NR(7, 13)
@@ -233,11 +234,10 @@ static int max17135_regulator_init(struct max17135 *max17135);
 static const struct esdhc_platform_data mx6q_sabresd_sd2_data __initconst = {
 	//.cd_gpio = SABRESD_SD2_CD,
 	//.wp_gpio = SABRESD_SD2_WP,
+	.always_present = 1,
 	.keep_power_at_suspend = 1,
-	.support_8bit = 1,
 	.delay_line = 0,
-	.cd_type = ESDHC_CD_CONTROLLER,
-	.runtime_pm = 1,
+	.cd_type = ESDHC_CD_PERMANENT,
 };
 
 static const struct esdhc_platform_data mx6q_sabresd_sd3_data __initconst = {
@@ -441,12 +441,6 @@ static int mxc_wm8958_init(void)
 	wm8958_data.sysclk = rate;
 	clk_set_rate(clko, rate);
 
-	/* enable wm8958 4.2v power supply */
-	gpio_request(SABRESD_CODEC_PWR_EN, "aud_4v2");
-	gpio_direction_output(SABRESD_CODEC_PWR_EN, 1);
-	msleep(1);
-	gpio_set_value(SABRESD_CODEC_PWR_EN, 1);
-
 	return 0;
 }
 
@@ -463,6 +457,14 @@ static int mxc_sgtl5000_init(void)
 	struct clk *clko;
 	struct clk *new_parent;
 	int rate;
+	gpio_request(SABRESD_AMP_EN, "amp_en");
+	gpio_direction_output(SABRESD_AMP_EN, 1);
+
+	/* enable wm8958 4.2v power supply */
+	gpio_request(SABRESD_CODEC_PWR_EN, "aud_4v2");
+	gpio_direction_output(SABRESD_CODEC_PWR_EN, 0);
+	msleep(1);
+	gpio_set_value(SABRESD_CODEC_PWR_EN, 0);
 
 	clko = clk_get(NULL, "clko_clk");
 	if (IS_ERR(clko)) {
@@ -1016,10 +1018,8 @@ static struct i2c_board_info mxc_i2c1_board_info[] __initdata = {
 /* [ZCL],Rev20151218,cancel the touch screen controller max11801
 */
 	{
-		I2C_BOARD_INFO("max11801", 0x48),
-		.platform_data = (void *)&max11801_mode,
-		.irq = gpio_to_irq(SABRESD_TS_INT),
-	},
+                I2C_BOARD_INFO("pcf8563", 0x51),
+        },
 };
 
 static struct i2c_board_info mxc_i2c2_board_info[] __initdata = {
@@ -1051,9 +1051,6 @@ static struct i2c_board_info mxc_i2c2_board_info[] __initdata = {
 		I2C_BOARD_INFO("isl1208", 0x6f),
 	},
 #endif
-        {
-                I2C_BOARD_INFO("pcf8563", 0x51),
-        },	
 	{
 		I2C_BOARD_INFO("mxc_ldb_i2c", 0x50),
 		.platform_data = (void *)1,	/* lvds port1 */
@@ -1308,10 +1305,10 @@ static struct imx_epdc_fb_platform_data epdc_data = {
 
 static void imx6q_sabresd_usbotg_vbus(bool on)
 {
-	if (on)
-		gpio_set_value(SABRESD_USB_OTG_PWR, 1);
-	else
-		gpio_set_value(SABRESD_USB_OTG_PWR, 0);
+	//if (on)
+		//gpio_set_value(SABRESD_USB_OTG_PWR, 1);
+	//else
+		//gpio_set_value(SABRESD_USB_OTG_PWR, 0);
 }
 
 static void imx6q_sabresd_host1_vbus(bool on)
@@ -1330,13 +1327,13 @@ static void __init imx6q_sabresd_init_usb(void)
 	/* disable external charger detect,
 	 * or it will affect signal quality at dp .
 	 */
-	ret = gpio_request(SABRESD_USB_OTG_PWR, "usb-pwr");
+	/*ret = gpio_request(SABRESD_USB_OTG_PWR, "usb-pwr");
 	if (ret) {
 		pr_err("failed to get GPIO SABRESD_USB_OTG_PWR: %d\n",
 			ret);
 		return;
 	}
-	gpio_direction_output(SABRESD_USB_OTG_PWR, 0);
+	gpio_direction_output(SABRESD_USB_OTG_PWR, 0);*/
 	/* keep USB host1 VBUS always on */
 	ret = gpio_request(SABRESD_USB_H1_PWR, "usb-h1-pwr");
 	if (ret) {
@@ -2274,14 +2271,8 @@ static void __init mx6_sabresd_board_init(void)
 			ARRAY_SIZE(mxc_i2c1_board_info));
 	i2c_register_board_info(2, mxc_i2c2_board_info,
 			ARRAY_SIZE(mxc_i2c2_board_info));
-	//ret = gpio_request(SABRESD_PFUZE_INT, "pFUZE-int");
-	//if (ret) {
-	//	printk(KERN_ERR"request pFUZE-int error!!\n");
-	//	return;
-	//} else {
-	//	gpio_direction_input(SABRESD_PFUZE_INT);
-	//	mx6q_sabresd_init_pfuze100(SABRESD_PFUZE_INT);
-	//}
+	ret = gpio_request(SABRESD_WIFI_EN, "wifi_en");
+	gpio_direction_output(SABRESD_WIFI_EN, 1);
 	/* SPI */
 	imx6q_add_ecspi(0, &mx6q_sabresd_spi_data);
 	spi_device_init();
@@ -2462,6 +2453,11 @@ static void __init mx6_sabresd_board_init(void)
 	imx6q_add_perfmon(0);
 	imx6q_add_perfmon(1);
 	imx6q_add_perfmon(2);
+	gpio_request(SABRESD_HUB_RESET, "hub-rst");
+	gpio_direction_output(SABRESD_HUB_RESET, 0);
+	mdelay(1000);
+	printk("hub reset \n");
+	gpio_direction_output(SABRESD_HUB_RESET, 1);
 }
 
 extern void __iomem *twd_base;
@@ -2474,8 +2470,8 @@ static void __init mx6_sabresd_timer_init(void)
 #endif
 	mx6_clocks_init(32768, 24000000, 0, 0);
 
-	//uart_clk = clk_get_sys("imx-uart.0", NULL);
-	//early_console_setup(UART1_BASE_ADDR, uart_clk);
+	uart_clk = clk_get_sys("imx-uart.0", NULL);
+	early_console_setup(UART1_BASE_ADDR, uart_clk);
 }
 
 static struct sys_timer mx6_sabresd_timer = {
