@@ -102,9 +102,9 @@
 #define SABRESD_USBH1_PWR_EN	IMX_GPIO_NR(1, 29)
 #define SABRESD_DISP0_PWR_EN	IMX_GPIO_NR(1, 30)
 
-//#define SABRESD_SD3_CD		IMX_GPIO_NR(2, 0)
+#define SABRESD_SD3_CD		IMX_GPIO_NR(2, 0)
 //#define SABRESD_SD3_WP		IMX_GPIO_NR(2, 1)
-#define SABRESD_SD3_CD                IMX_GPIO_NR(7, 0)
+//#define SABRESD_SD3_CD                IMX_GPIO_NR(7, 0)
 #define SABRESD_SD3_WP                IMX_GPIO_NR(7, 1)
 
 #define SABRESD_SD2_CD		IMX_GPIO_NR(2, 2)
@@ -247,7 +247,7 @@ static const struct esdhc_platform_data mx6q_sabresd_sd2_data __initconst = {
 
 static const struct esdhc_platform_data mx6q_sabresd_sd3_data __initconst = {
 	.cd_gpio = SABRESD_SD3_CD,
-	.wp_gpio = SABRESD_SD3_WP,
+	//.wp_gpio = SABRESD_SD3_WP,
 	.keep_power_at_suspend = 1,
 	.support_8bit = 1,
 	.delay_line = 0,
