@@ -85,6 +85,7 @@
 #include "board-mx6q_sabresd.h"
 #include "board-mx6dl_sabresd.h"
 #include <mach/imx_rfkill.h>
+#include <linux/w1-gpio.h>
 
 #define SABRESD_USR_DEF_GRN_LED	IMX_GPIO_NR(1, 1)
 //#define SABRESD_BT_RESET	IMX_GPIO_NR(1, 2)
@@ -107,7 +108,7 @@
 //#define SABRESD_SD3_CD                IMX_GPIO_NR(7, 0)
 #define SABRESD_SD3_WP                IMX_GPIO_NR(7, 1)
 
-#define SABRESD_SD2_CD		IMX_GPIO_NR(2, 2)
+//#define SABRESD_SD2_CD		IMX_GPIO_NR(2, 2)
 #define SABRESD_SD2_WP		IMX_GPIO_NR(5, 20)
 #define SABRESD_CHARGE_DOK_B	IMX_GPIO_NR(2, 24)
 #define SABRESD_GPS_RESET	IMX_GPIO_NR(2, 28)
@@ -1925,6 +1926,19 @@ static struct platform_pwm_backlight_data mx6_sabresd_pwm3_backlight_data = {
         .pwm_period_ns = 50000,
 };
 
+//add ds18b20
+static struct w1_gpio_platform_data w1_gpio_pdata = {
+	.pin = IMX_GPIO_NR(2, 2),  
+	.is_open_drain= 0,   
+  //.enable_external_pullup = w1_enable_external_pullup,  
+};  
+
+static struct platform_device w1_device = {
+  .name = "w1-gpio",  
+  .id = -1,  
+  .dev.platform_data= &w1_gpio_pdata,  
+}; 
+
 #ifdef CONFIG_HAVE_EPIT
 static struct platform_ir_data mx6_sabresd_ir_data = {
     .pwm_id = 1,
@@ -2169,7 +2183,8 @@ static void __init mx6_sabresd_board_init(void)
 	struct clk *new_parent;
 	int rate;
 	struct platform_device *voutdev;
-
+	int err;
+	
 	if (cpu_is_mx6q()) {
 		mxc_iomux_v3_setup_multiple_pads(mx6q_sabresd_pads,
 			ARRAY_SIZE(mx6q_sabresd_pads));
@@ -2349,6 +2364,13 @@ static void __init mx6_sabresd_board_init(void)
 	imx6q_add_mxc_epit(0);
 	imx6q_add_mxc_epit(1);
 #endif
+
+	//ds18b20
+ 	err = platform_device_register(&w1_device);
+	if (err)
+		pr_err("failed to register w1-gpio\n");
+	else
+		pr_info("w1-gpio connected to GPIO1_27\n");
 
 	imx6q_add_mxc_pwm(0);
 	imx6q_add_mxc_pwm(1);
