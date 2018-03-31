@@ -296,7 +296,8 @@ static void rtl8211F_led_control(struct phy_device *phydev)
         /*switch to extension page44*/
         phy_write(phydev, 31, 0x0d04);
 
-        phy_write(phydev, 16, 0x2c1b);
+        //phy_write(phydev, 16, 0x2c1b);
+		phy_write(phydev, 16, 0x2f6b);
 
         /*what you should modify is end*/
         phy_write(phydev,31,0);
