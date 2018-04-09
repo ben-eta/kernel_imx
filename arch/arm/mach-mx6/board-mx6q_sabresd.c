@@ -501,9 +501,9 @@ static struct mxc_audio_platform_data mxc_sgtl5000_data = {
 	.src_port = 2,
 	.ext_port = 3,
 	.init = mxc_sgtl5000_init,
-	.hp_gpio = SABRESD_HEADPHONE_DET,
+	.hp_gpio = -1,
         .hp_active_low = 1,
-        .mic_gpio = SABRESD_MICROPHONE_DET,
+        .mic_gpio = -1,
         .mic_active_low = 1,
 };
 
@@ -2509,8 +2509,8 @@ static void __init mx6_sabresd_timer_init(void)
 #endif
 	mx6_clocks_init(32768, 24000000, 0, 0);
 
-	//uart_clk = clk_get_sys("imx-uart.0", NULL);
-	//early_console_setup(UART1_BASE_ADDR, uart_clk);
+	uart_clk = clk_get_sys("imx-uart.0", NULL);
+	early_console_setup(UART1_BASE_ADDR, uart_clk);
 }
 
 static struct sys_timer mx6_sabresd_timer = {
